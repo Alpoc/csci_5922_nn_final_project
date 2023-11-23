@@ -28,12 +28,12 @@ def start_recording():
     while continue_recording:
         clock.tick(15)
 
-        left_joystick_x_axis = controllers[0].get_axis(0)
+        # left_joystick_x_axis = controllers[0].get_axis(0)
         left_joystick_y_axis = controllers[0].get_axis(1)
         left_trigger = controllers[0].get_axis(4)
         right_trigger = controllers[0].get_axis(5)
 
-        inputs.append([left_trigger, right_trigger, left_joystick_x_axis, left_joystick_y_axis])
+        inputs.append([right_trigger, left_trigger, left_joystick_y_axis])
 
         if keyboard.is_pressed(stop_recording_button):
             break
@@ -46,7 +46,16 @@ def start_recording():
     print('recording ended')
 
 
+def test_controller():
+    while True:
+        clock.tick(15)
+        right_trigger = controllers[0].get_axis(5)
+        # print(right_trigger)
+        for event in pygame.event.get():
+            print(event.dict)
+
 if __name__ == "__main__":
+    DEBUG = True
     pygame.init()
     clock = pygame.time.Clock()
     continue_recording = True
@@ -67,7 +76,11 @@ if __name__ == "__main__":
         if event.type == JOYBUTTONDOWN:
             if event.dict['button'] == 5:
                 print("RB button hit")
-                start_recording()
-                break
+                if DEBUG:
+                    test_controller()
+                    break
+                else:
+                    start_recording()
+                    break
 
     print("recording finished")
