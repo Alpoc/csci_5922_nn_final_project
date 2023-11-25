@@ -13,6 +13,8 @@ from PIL import Image
 def create_recording_dir():
     time_str = time.strftime("%Y_%m_%d-%H_%M_%S")
     recording_file = "session_" + time_str
+    if not path.exists('recordings'):
+        os.mkdir("recordings")
     session_path = path.join('recordings', recording_file)
     os.mkdir(session_path)
     video_path = path.join(session_path, "video_images")
@@ -27,7 +29,6 @@ def record_session():
 
     print('ready to record')
     while True:
-
         if keyboard.is_pressed('f9'):
             record = True
             print('recording started')
@@ -45,18 +46,16 @@ def record_session():
             if keyboard.is_pressed('d'):
                 current_keys.append('d')
 
-            keystrokes.append([current_keys, time.time()])
+            keystrokes.append(current_keys)
             # storing in memory fills up very quickly.
             # images.append(camera.get_latest_frame())
-
             img = Image.fromarray(camera.get_latest_frame()).convert("RGB")
             # tif format saves much faster than png
-            img.save(path.join(video_path, str(i) + '.tif'))
-
+            img.save(path.join(video_path, str(i).zfill(10) + '.tif'))
             i += 1
 
         # limit the loop to specified "fps" value
-        clock.tick_busy_loop(30)
+        clock.tick_busy_loop(target_framerate)
 
     camera.stop()
 
@@ -72,9 +71,10 @@ if __name__ == "__main__":
     clock = pygame.time.Clock()
     keystrokes = []
     images = []
+    target_framerate = 30
     # https://github.com/ra1nty/DXcam
     camera = dxcam.create()
-    camera.start(region=(0, 0, 1920, 1080), target_fps=30)
+    camera.start(region=(0, 0, 1920, 1080), target_fps=target_framerate)
 
     record_session()
 
