@@ -55,7 +55,7 @@ def record_session():
                 threading.Thread(target=frame_writer, args=(frames,)).start()
                 frames = {}
                 break
-            current_keys = [0, 0 , 0, 0]
+            current_keys = [0, 0, 0, 0]
             if keyboard.is_pressed('w'):
                 current_keys[0] = 1
             if keyboard.is_pressed('a'):
