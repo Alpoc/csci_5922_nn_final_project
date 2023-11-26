@@ -2,26 +2,21 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten, Dropout, Conv2D, MaxPooling2D, CategoryEncoding
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
-import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.model_selection import train_test_split
-# import seaborn as sns
 import pandas as pd
 import os
-import cv2
-import json
-import imageio.v3 as imageio
-from sklearn.preprocessing import MultiLabelBinarizer
 
 
-def get_files():
+
+def get_files(recording_base_dir):
     """
     Cannot load the image files into memory. Too large.
     :return: list of files, json keypress file
     """
     video_frames = []
 
-    recording_base_dir = "recordings"
+    # recording_base_dir = "recordings"
     recordings = os.listdir(recording_base_dir)
     for session_dir in recordings:
         recording_dir = os.path.join(recording_base_dir, session_dir)
@@ -46,10 +41,10 @@ def load_model_onto_gpu():
     gpu_model = Sequential([
         Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=sample_x.shape),
         MaxPooling2D(pool_size=(2, 2)),
-        Conv2D(filters=64, kernel_size=(4, 4), activation='relu'),
+        Conv2D(filters=32, kernel_size=(4, 4), activation='relu'),
         MaxPooling2D(pool_size=(2, 2)),
         Flatten(),
-        Dense(64, activation='relu'),
+        Dense(32, activation='relu'),
         # 4 labels.
         Dense(4, activation='softmax')
         # tf.keras.layers.CategoryEncoding(num_tokens=4, output_mode="multi_hot")
@@ -78,31 +73,39 @@ def train_in_batches(x_train, y_train, model, x_test, y_test):
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                      save_weights_only=True,
                                                      verbose=1)
+    # Have to find a good balance for system memory and VRAM
+    gpu_batch = 16
+    memory_batch = 512
 
     while len(x_train) > 0:
         current_x_train = []
         current_y_train = []
-        for _ in range(32):
+        for _ in range(memory_batch):
             if len(x_train) == 0:
                 break
             current_x_train.append(img_to_array(load_img(x_train.pop(0))) / 255)
             current_y_train.append(y_train.pop(0))
         current_x_train = np.array(current_x_train)
 
-        with tf.device("/GPU:0"):
-            model_hist = model.fit(current_x_train, np.array(current_y_train), epochs=1, batch_size=32,
-                                   callbacks=[cp_callback])
+        if len(tf.config.list_physical_devices('GPU')):
+            with tf.device("/GPU:0"):
+                model_hist = model.fit(current_x_train, np.array(current_y_train), epochs=8, batch_size=gpu_batch,
+                                       callbacks=[cp_callback])
         print(f'remaining data: {len(x_train)}')
 
 
 def test_gpu():
+    print('yum')
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
     print(tf.test.is_built_with_cuda())
 
 if __name__ == "__main__":
     # test_gpu()
     # exit()
-    x, y = get_files()
+
+    recording_directory = "/media/dj/Games Drive/Nerual_networks"
+
+    x, y = get_files(recording_directory)
 
     x_train, x_test, y_train, y_test = train_test_split(x, y)
 
