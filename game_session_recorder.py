@@ -1,24 +1,21 @@
-import logging
 import os
-
 import keyboard
 import pygame
 from os import path
-import json
 import dxcam
 import time
 from PIL import Image
-from multiprocessing import Pool
 import pandas as pd
-import asyncio
 import threading
+import config
+
 
 def create_recording_dir():
     time_str = time.strftime("%Y_%m_%d-%H_%M_%S")
     recording_file = "session_" + time_str
-    if not path.exists('recordings'):
-        os.mkdir("recordings")
-    session_path = path.join('recordings', recording_file)
+    if not path.exists(config.windows_training_directory):
+        os.mkdir(config.windows_training_directory)
+    session_path = path.join(config.windows_training_directory, recording_file)
     os.mkdir(session_path)
     video_path = path.join(session_path, "video_images")
     os.mkdir(video_path)
@@ -36,6 +33,7 @@ def frame_writer(frame_dict):
         img = Image.fromarray(frame).convert("RGB")
         # tif format saves much faster than png
         img.save(path_string)
+
 
 def record_session():
     session_path, video_path = create_recording_dir()
@@ -66,9 +64,9 @@ def record_session():
                 current_keys[3] = 1
 
             keystrokes.append(current_keys)
+
             # storing in memory fills up very quickly.
             # images.append(camera.get_latest_frame())
-
             if not thread:
                 img = Image.fromarray(camera.get_latest_frame()).convert("RGB")
                 # tif format saves much faster than png
@@ -89,10 +87,9 @@ def record_session():
     print("recording ended")
     print(f'keys captured: {len(keystrokes)}')
 
-    # with open(path.join(session_path, 'inputs' + '.json'), "w", newline='') as f:
-    #     f.write(json.dumps(keystrokes, indent=4))
     df = pd.DataFrame(keystrokes, columns=['w', 'a', 's', 'd'])
     df.to_csv(path.join(session_path, 'inputs' + '.csv'))
+
 
 if __name__ == "__main__":
     pygame.init()

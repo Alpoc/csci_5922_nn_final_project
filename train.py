@@ -37,13 +37,16 @@ def get_files(recording_base_dir):
     return frame_dir_list, df_combined
 
 
-def load_model_onto_gpu():
-
-    # x = imageio.imread(x_train[0]))
-    # sample_x = cv2.imread(x_train[0])
-    sample_x = img_to_array(load_img(x_train[0]))
-    gpu_model = Sequential([
-        Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=sample_x.shape),
+def build_model(input_shape=None):
+    """
+    Build new model based on input image.
+    :return: TensorFlow Keras model
+    """
+    if not input_shape:
+        sample_x = img_to_array(load_img(x_train[0]))
+        input_shape = sample_x.shape
+    new_model = Sequential([
+        Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=input_shape),
         MaxPooling2D(pool_size=(2, 2)),
         Conv2D(filters=32, kernel_size=(4, 4), activation='relu'),
         MaxPooling2D(pool_size=(2, 2)),
@@ -53,10 +56,10 @@ def load_model_onto_gpu():
         Dense(4, activation='softmax')
         # tf.keras.layers.CategoryEncoding(num_tokens=4, output_mode="multi_hot")
     ])
-    gpu_model.compile(optimizer='adam',
+    new_model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
-    return gpu_model
+    return new_model
 
 
 def train_in_batches(x_train, y_train, model, x_test, y_test):
@@ -158,5 +161,5 @@ if __name__ == "__main__":
 
     # x_test = np.array([img_to_array(load_img(x)) for x in x_test])
 
-    model = load_model_onto_gpu()
+    model = build_model()
     train_in_batches(list(x_train), y_train.values.tolist(), model, x_test, y_test.to_numpy())
