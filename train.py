@@ -3,7 +3,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten, Dropout, Conv2D, MaxPooling2D, CategoryEncoding
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 import numpy as np
-from sklearn.model_selection import train_test_split
+#from sklearn.model_selection import train_test_split
 import pandas as pd
 import os
 import gc
@@ -132,11 +132,7 @@ def train_in_batches(x_train, y_train, model):
             avg_batch_time = (current_time - start_time) / batches_processed * batches_remaining / 60
             print(f"estimated time remaining: {batches_remaining * avg_batch_time} minutes")
             epoch_time = current_time
-            tf.keras.saving.save_model(model,
-                                       os.path.join(config.linux_model_location, "current_model", config.model_name),
-                                       overwrite=True)
-            # TF keras saving was broken between 2.13 and 2.15 or there around. Workaround is saving weights
-            model.save_weights(filepath=os.path.join(config.linux_model_location, "current_model"))
+            save_model(model)
             loop_count = 0
         loop_count += 1
 
@@ -166,6 +162,21 @@ def gpu_check():
         print('only cpu training available. Remove gpu check to continue')
         exit()
 
+
+def save_model(model):
+    """
+    Converting to run on windows is tricky. Save off in a few different approaches.
+    :param model: keras model
+    :return:
+    """
+    # Saves model in directory.
+    tf.keras.saving.save_model(model,
+                               os.path.join(config.linux_model_location, "current_model", "keras_model_dir"),
+                               overwrite=True)
+    # saves as checkpoint, weights.data, and weights.index
+    model.save_weights(filepath=os.path.join(config.linux_model_location, "current_model"))
+    model.save(os.path.join(config.linux_model_location, "current_model", "beamng_model.hdf5"))
+    model.save(os.path.join(config.linux_model_location, "current_model", "beamng_model.h5"), save_format='h5')
 
 if __name__ == "__main__":
     # gpu_check()

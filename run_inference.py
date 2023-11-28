@@ -6,6 +6,7 @@ import config
 import pandas as pd
 import numpy as np
 import gc
+import PIL
 
 def validate_model(model, x_test, y_test):
     memory_batch = 256
@@ -54,20 +55,21 @@ if __name__ == "__main__":
 
     if path.exists(config.windows_testing_directory):
         x, y = get_files(config.windows_testing_directory)
+        x_shape = img_to_array(load_img(x[0])).shape
+        model_location = path.join(config.windows_model_location, "current_model", "keras_model_dir")
+
+        model = tf.keras.models.load_model(model_location, custom_objects=None, compile=True)
+
+        # weights_location = path.join(config.windows_model_location, "current_model",
+        #                              "checkpoint")
+        # model = build_model(x_shape)
+        # model.set_weights(weights_location)
+        # model.load_weights(weights_location)
+
 
     else:
-        print("loading model on linux")
         x, y = get_files(config.linux_testing_directory)
         model_location = path.join(config.linux_model_location, "current_model", config.model_name)
         model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
-
-    # print('loading test images into memory')
-    # x = [img_to_array(load_img(x)) / 255 for x in x]
-
-    # visualize_prediction(model, x, y)
-
-    # model = build_model(x[0].shape)
-    # model.set_weights(config.windows_model_location)
-    # model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
 
     validate_model(model, list(x), y.values.tolist())
