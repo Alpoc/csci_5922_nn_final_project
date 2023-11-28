@@ -7,7 +7,8 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import os
 import gc
-
+import config
+import time
 
 
 def get_files(recording_base_dir):
@@ -43,7 +44,7 @@ def build_model(input_shape=None):
     :return: TensorFlow Keras model
     """
     if not input_shape:
-        sample_x = img_to_array(load_img(x_train[0]))
+        sample_x = img_to_array(load_img(x[0]))
         input_shape = sample_x.shape
     new_model = Sequential([
         Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=input_shape),
@@ -53,16 +54,16 @@ def build_model(input_shape=None):
         Flatten(),
         Dense(32, activation='relu'),
         # 4 labels.
-        Dense(4, activation='softmax')
+        Dense(4, activation='sigmoid')
         # tf.keras.layers.CategoryEncoding(num_tokens=4, output_mode="multi_hot")
     ])
     new_model.compile(optimizer='adam',
-                  loss='categorical_crossentropy',
+                  loss='binary_crossentropy',
                   metrics=['accuracy'])
     return new_model
 
 
-def train_in_batches(x_train, y_train, model, x_test, y_test):
+def train_in_batches(x_train, y_train, model):
     """
     We cannot load all of the frames into memory so do it incrementally.
     :param x_train:
@@ -86,9 +87,11 @@ def train_in_batches(x_train, y_train, model, x_test, y_test):
     # System: 32GB ram, os uses 5GB
     # 512 is a good match for leaving 2GB free but when laoding in a new batch is OOMs for some reason.
     # 384 is about 5GB each batch but the initial load uses 10GB. Not sure why
-    memory_batch = 384
+    memory_batch = 320
     epochs = 8
     loop_count = 0
+    start_time = epoch_time = time.time()
+    batches_processed = 0
 
     while len(x_train) > 0:
         current_x_train = []
@@ -117,13 +120,38 @@ def train_in_batches(x_train, y_train, model, x_test, y_test):
         gc.collect()
 
         if loop_count >= 5:
-            tf.keras.saving.save_model(model, "models/current_model.keras", overwrite=True)
+            print('saving off model')
+            current_time = time.time()
+            print(f'current runtime: {current_time - start_time}')
+            # TF reports epoch time, but it takes a while to load the data into Memory
+            print(f'epoch time: {current_time - epoch_time}')
+            batches_remaining = round(len(x_train) / memory_batch)
+            avg_batch_time = (current_time - start_time) / batches_processed * batches_remaining / 60
+            print(f"estimated time remaining: {batches_remaining * avg_batch_time} minutes")
+            epoch_time = current_time
+            tf.keras.saving.save_model(model,
+                                       os.path.join(config.linux_model_location, "current_model", config.model_name),
+                                       overwrite=True)
+            # TF keras saving was broken between 2.13 and 2.15 or there around. Workaround is saving weights
+            model.save_weights(filepath=os.path.join(config.linux_model_location, "current_model", "weights"))
             loop_count = 0
         loop_count += 1
 
-        print(f'remaining data: {len(x_train)}')
+        batches_processed += 1
+        print(f'{round(len(x_train) / memory_batch)}batches to go!')
 
-    tf.keras.saving.save_model(model, "models/current_model.keras", overwrite=True)
+    tf.keras.saving.save_model(model, model_location, overwrite=True)
+
+
+def move_previous_model_folder():
+    """
+    Rename previous model to not overwrite it
+    :return:
+    """
+    model_path = os.path.join(config.linux_model_location, "current_model")
+    if os.path.exists(model_path):
+        os.rename(model_path, os.path.join(config.linux_model_location, "model_" + time.strftime("%Y_%m_%d-%H_%M_%S")))
+        os.mkdir(model_path)
 
 
 def gpu_check():
@@ -135,12 +163,16 @@ def gpu_check():
         print('only cpu training available. Remove gpu check to continue')
         exit()
 
+
 if __name__ == "__main__":
     # gpu_check()
+    new_model = False
+
+
     # callbacks are saved after each epoc. It's not great in our case since we're batching data into the RAM.
     save_callbacks = False
-    recording_directory = "/media/dj/Games Drive/Nerual_networks"
-    model_location = "/media/dj/Games Drive/Nerual_networks/models/current_model.keras"
+    recording_directory = config.linux_training_directory
+    model_location = config.linux_model_location
 
     x, y = get_files(recording_directory)
     # for i in range(len(x)):
@@ -148,18 +180,22 @@ if __name__ == "__main__":
     # exit()
 
 
-    x_train, x_test, y_train, y_test = train_test_split(x, y)
+    # x_train, x_test, y_train, y_test = train_test_split(x, y)
 
-    print(f"training set x: {len(x_train)}")
-    print(f"training set y: {len(y_train)}")
-    print(f"test set x: {len(x_test)}")
-    print(f"test set y: {len(y_test)}")
+    # print(f"training set x: {len(x_train)}")
+    # print(f"training set y: {len(y_train)}")
+    # print(f"test set x: {len(x_test)}")
+    # print(f"test set y: {len(y_test)}")
 
     # Data Normalized to 0 to 1. Pixel values are 0-255
     # x_train = x_train / 255.0
     # x_test = x_test / 255.0
 
     # x_test = np.array([img_to_array(load_img(x)) for x in x_test])
-
-    model = build_model()
-    train_in_batches(list(x_train), y_train.values.tolist(), model, x_test, y_test.to_numpy())
+    if new_model:
+        move_previous_model_folder()
+        model = build_model(img_to_array(load_img(x[0])).shape)
+    else:
+        model_location = os.path.join(config.linux_model_location, config.model_name)
+        model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
+    train_in_batches(list(x), y.values.tolist(), model)
