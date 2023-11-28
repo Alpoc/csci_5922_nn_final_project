@@ -55,7 +55,6 @@ def build_model(input_shape=None):
         Dense(32, activation='relu'),
         # 4 labels.
         Dense(4, activation='sigmoid')
-        # tf.keras.layers.CategoryEncoding(num_tokens=4, output_mode="multi_hot")
     ])
     new_model.compile(optimizer='adam',
                   loss='binary_crossentropy',
@@ -87,7 +86,8 @@ def train_in_batches(x_train, y_train, model):
     # System: 32GB ram, os uses 5GB
     # 512 is a good match for leaving 2GB free but when laoding in a new batch is OOMs for some reason.
     # 384 is about 5GB each batch but the initial load uses 10GB. Not sure why
-    memory_batch = 320
+    # having issues with crashing so lower batch to 256
+    memory_batch = 256
     epochs = 8
     loop_count = 0
     start_time = epoch_time = time.time()
@@ -101,16 +101,19 @@ def train_in_batches(x_train, y_train, model):
                 break
             current_x_train.append(img_to_array(load_img(x_train.pop(0))) / 255)
             current_y_train.append(y_train.pop(0))
+
+        # Datatypes must match.
         current_x_train = np.array(current_x_train)
+        current_y_train = np.array(current_y_train)
 
         if len(tf.config.list_physical_devices('GPU')):
             with tf.device("/GPU:0"):
                 if save_callbacks:
-                    model_hist = model.fit(current_x_train, np.array(current_y_train),
+                    model_hist = model.fit(current_x_train, current_y_train,
                                            epochs=epochs, batch_size=gpu_batch,
                                            callbacks=[cp_callback])
                 else:
-                    model_hist = model.fit(current_x_train, np.array(current_y_train),
+                    model_hist = model.fit(current_x_train, current_y_train,
                                            epochs=epochs, batch_size=gpu_batch)
 
         # python garbage collection was not working fast enough.
@@ -133,7 +136,7 @@ def train_in_batches(x_train, y_train, model):
                                        os.path.join(config.linux_model_location, "current_model", config.model_name),
                                        overwrite=True)
             # TF keras saving was broken between 2.13 and 2.15 or there around. Workaround is saving weights
-            model.save_weights(filepath=os.path.join(config.linux_model_location, "current_model", "weights"))
+            model.save_weights(filepath=os.path.join(config.linux_model_location, "current_model"))
             loop_count = 0
         loop_count += 1
 
@@ -168,34 +171,16 @@ if __name__ == "__main__":
     # gpu_check()
     new_model = False
 
-
     # callbacks are saved after each epoc. It's not great in our case since we're batching data into the RAM.
     save_callbacks = False
     recording_directory = config.linux_training_directory
-    model_location = config.linux_model_location
 
     x, y = get_files(recording_directory)
-    # for i in range(len(x)):
-    #     print(f"x: {x[i]},   y{y.iloc[i]}")
-    # exit()
 
-
-    # x_train, x_test, y_train, y_test = train_test_split(x, y)
-
-    # print(f"training set x: {len(x_train)}")
-    # print(f"training set y: {len(y_train)}")
-    # print(f"test set x: {len(x_test)}")
-    # print(f"test set y: {len(y_test)}")
-
-    # Data Normalized to 0 to 1. Pixel values are 0-255
-    # x_train = x_train / 255.0
-    # x_test = x_test / 255.0
-
-    # x_test = np.array([img_to_array(load_img(x)) for x in x_test])
     if new_model:
         move_previous_model_folder()
         model = build_model(img_to_array(load_img(x[0])).shape)
     else:
-        model_location = os.path.join(config.linux_model_location, config.model_name)
+        model_location = os.path.join(config.linux_model_location, "current_model", config.model_name)
         model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
     train_in_batches(list(x), y.values.tolist(), model)
