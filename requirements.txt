@@ -14,3 +14,5 @@ tensorflow-metadata==1.14.0
 pyyaml
 h5py==3.10.0
 PyYAML==5.4.1
+dxcam
+keyboard
