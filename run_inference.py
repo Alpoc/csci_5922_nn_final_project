@@ -9,6 +9,7 @@ import numpy as np
 import dxcam
 import time
 import keyboard
+from matplotlib import pyplot as plt
 
 
 def validate_model(model, x_test, y_test):
@@ -65,6 +66,11 @@ def inference_on_game(model):
         if keyboard.is_pressed('esc'):
             print('program killed by user')
             exit()
+        if keyboard.is_pressed('f8'):
+            # show screen for test
+            frame = camera.get_latest_frame()
+            plt.imshow(frame, interpolation='nearest')
+            plt.show()
         if model_run:
             # inference on CPU takes too long.
             # keyboard.release('w')
