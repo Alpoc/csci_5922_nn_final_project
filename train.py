@@ -66,15 +66,28 @@ def build_cnn_lstm_model(input_shape):
     """
         Build new model based on input image.
         :return: TensorFlow Keras model
-        """
+    """
     if not input_shape:
         sample_x = img_to_array(load_img(x[0]))
         input_shape = sample_x.shape
+    # new_model = Sequential([
+    #     TimeDistributed(Conv2D(filters=16, kernel_size=(3, 3), activation='tanh'),
+    #                     input_shape=(gpu_batch, 720, 1280, 1)),
+    #     # ConvLSTM2D(filters=16, kernel_size=(3, 3), activation='tanh', input_shape=(720, 1280, 1)),
+    #     # MaxPooling2D(pool_size=(2, 2)),
+    #     # ConvLSTM2D(filters=32, kernel_size=(4, 4), activation='tanh'),
+    #     # MaxPooling2D(pool_size=(2, 2)),
+    #     Flatten(),
+    #     Dense(32, activation='relu'),
+    #     # 4 labels.
+    #     Dense(4, activation='sigmoid')
+    # ])
+
     new_model = Sequential([
-        TimeDistributed(Conv2D(filters=32, kernel_size=(3, 3), activation='tanh', input_shape=(720, 1280, 1)), input_shape=(16, 720, 1280, 1)),
-        # MaxPooling2D(pool_size=(2, 2)),
-        # ConvLSTM2D(filters=32, kernel_size=(4, 4), activation='tanh'),
-        # MaxPooling2D(pool_size=(2, 2)),
+        Conv2D(filters=32, kernel_size=(3, 3), input_shape=input_shape),
+        MaxPooling2D(pool_size=(2, 2)),
+        TimeDistributed(Flatten()),
+        LSTM(16),
         Flatten(),
         Dense(32, activation='relu'),
         # 4 labels.
@@ -104,15 +117,8 @@ def train_in_batches(x_train, y_train, model):
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                      save_weights_only=True,
                                                      verbose=1)
-    # Have to find a good balance for system memory and VRAM
-    # 32 batch exceeds 24GB VRAM.
-    gpu_batch = 16
-    # System: 32GB ram, os uses 5GB
-    # 512 is a good match for leaving 2GB free but when laoding in a new batch is OOMs for some reason.
-    # 384 is about 5GB each batch but the initial load uses 10GB. Not sure why
-    # having issues with crashing so lower batch to 256
-    memory_batch = 256
-    epochs = 8
+
+    epochs = 2
     loop_count = 0
     start_time = epoch_time = time.time()
     batches_processed = 0
@@ -120,16 +126,20 @@ def train_in_batches(x_train, y_train, model):
     while len(x_train) > 0:
         current_x_train = []
         current_y_train = []
+        print("loading images into memory")
         for _ in range(memory_batch):
             if len(x_train) == 0:
                 break
             current_x_train.append(img_to_array(load_img(x_train.pop(0), color_mode=color_mode)) / 255)
             current_y_train.append(y_train.pop(0))
 
+        # current_x_train, current_y_train = tf.keras.utils.timeseries_dataset_from_array(current_x_train, current_y_train, sequence_length=gpu_batch)
+
         # Datatypes must match.
+        # current_x_train = current_x_train[None, ...]
         current_x_train = np.array(current_x_train)
         current_y_train = np.array(current_y_train)
-
+        print("moving images from RAM to VRAM")
         if len(tf.config.list_physical_devices('GPU')):
             with tf.device("/GPU:0"):
                 if save_callbacks:
@@ -161,7 +171,7 @@ def train_in_batches(x_train, y_train, model):
         loop_count += 1
 
         batches_processed += 1
-        print(f'{round(len(x_train) / memory_batch)}batches to go!')
+        print(f'{round(len(x_train) / memory_batch)} batches to go!')
 
     save_model(model)
 
@@ -206,10 +216,20 @@ def save_model(model):
     # model.save(os.path.join(config.linux_model_location, "current_model", "beamng_model.hdf5"))
     # model.save(os.path.join(config.linux_model_location, "current_model", "beamng_model.h5"), save_format='h5')
 
+
 if __name__ == "__main__":
     # gpu_check()
     train_new_model = True
     color_mode = "grayscale"
+
+    # Have to find a good balance for system memory and VRAM
+    # 32 batch exceeds 24GB VRAM.
+    gpu_batch = 32
+    # System: 32GB ram, os uses 5GB
+    # 512 is a good match for leaving 2GB free but when laoding in a new batch is OOMs for some reason.
+    # 384 is about 5GB each batch but the initial load uses 10GB. Not sure why
+    # having issues with crashing so lower batch to 256
+    memory_batch = 512
 
     # callbacks are saved after each epoc. It's not great in our case since we're batching data into the RAM.
     save_callbacks = False
