@@ -3,7 +3,6 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten, Dropout, Conv2D, MaxPooling2D, CategoryEncoding, LSTM, ConvLSTM2D, TimeDistributed
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 import numpy as np
-#from sklearn.model_selection import train_test_split
 import pandas as pd
 import os
 import gc
@@ -20,7 +19,6 @@ def get_files(recording_base_dir):
     frame_dir_list = []
     df_combined = pd.DataFrame()
 
-    # recording_base_dir = "recordings"
     recordings = os.listdir(recording_base_dir)
     for session_dir in recordings:
         recording_dir = os.path.join(recording_base_dir, session_dir)
@@ -84,10 +82,10 @@ def build_cnn_lstm_model(input_shape):
     # ])
 
     new_model = Sequential([
-        Conv2D(filters=32, kernel_size=(3, 3), input_shape=input_shape),
+        Conv2D(filters=64, kernel_size=(3, 3), input_shape=input_shape),
         MaxPooling2D(pool_size=(2, 2)),
         TimeDistributed(Flatten()),
-        LSTM(16),
+        LSTM(32),
         Flatten(),
         Dense(32, activation='relu'),
         # 4 labels.
@@ -118,62 +116,72 @@ def train_in_batches(x_train, y_train, model):
                                                      save_weights_only=True,
                                                      verbose=1)
 
-    epochs = 2
+    epochs = 1
     loop_count = 0
     start_time = epoch_time = time.time()
     batches_processed = 0
 
-    while len(x_train) > 0:
-        current_x_train = []
-        current_y_train = []
-        print("loading images into memory")
-        for _ in range(memory_batch):
-            if len(x_train) == 0:
-                break
-            current_x_train.append(img_to_array(load_img(x_train.pop(0), color_mode=color_mode)) / 255)
-            current_y_train.append(y_train.pop(0))
+    full_x_train = x_train.copy()
+    full_y_train = y_train.copy()
+    epochs_ran = 0
 
-        # current_x_train, current_y_train = tf.keras.utils.timeseries_dataset_from_array(current_x_train, current_y_train, sequence_length=gpu_batch)
+    for _ in range(1000):
+        while len(x_train) > 0:
+            current_x_train = []
+            current_y_train = []
+            print("loading images into memory")
+            for _ in range(memory_batch):
+                if len(x_train) == 0:
+                    break
+                current_x_train.append(img_to_array(load_img(x_train.pop(0), color_mode=color_mode)) / 255)
+                current_y_train.append(y_train.pop(0))
 
-        # Datatypes must match.
-        # current_x_train = current_x_train[None, ...]
-        current_x_train = np.array(current_x_train)
-        current_y_train = np.array(current_y_train)
-        print("moving images from RAM to VRAM")
-        if len(tf.config.list_physical_devices('GPU')):
-            with tf.device("/GPU:0"):
-                if save_callbacks:
-                    model_hist = model.fit(current_x_train, current_y_train,
-                                           epochs=epochs, batch_size=gpu_batch,
-                                           callbacks=[cp_callback])
-                else:
-                    model_hist = model.fit(current_x_train, current_y_train,
-                                           epochs=epochs, batch_size=gpu_batch)
+            # current_x_train, current_y_train = tf.keras.utils.timeseries_dataset_from_array(current_x_train, current_y_train, sequence_length=gpu_batch)
 
-        # python garbage collection was not working fast enough.
-        del current_x_train
-        del current_y_train
-        # Todo: look into tracemalloc. gc.collect works but it's not perfect.
-        gc.collect()
+            # Datatypes must match.
+            current_x_train = np.array(current_x_train)
+            current_y_train = np.array(current_y_train)
+            print("moving images from RAM to VRAM")
+            if len(tf.config.list_physical_devices('GPU')):
+                with tf.device("/GPU:0"):
+                    if save_callbacks:
+                        model_hist = model.fit(current_x_train, current_y_train,
+                                               epochs=epochs, batch_size=gpu_batch,
+                                               callbacks=[cp_callback])
+                    else:
+                        model_hist = model.fit(current_x_train, current_y_train,
+                                               epochs=epochs, batch_size=gpu_batch)
 
-        if loop_count >= 5:
-            print('saving off model')
-            current_time = time.time()
-            print(f'current runtime: {(current_time - start_time) / 60} minutes')
-            # TF reports epoch time, but it takes a while to load the data into Memory
-            print(f'epoch time: {current_time - epoch_time} seconds')
-            batches_remaining = round(len(x_train) / memory_batch)
-            avg_batch_time = (current_time - start_time) / batches_processed / 60
-            print(f"estimated time remaining: {batches_remaining * avg_batch_time} minutes")
-            epoch_time = current_time
-            save_model(model)
-            loop_count = 0
-        loop_count += 1
+            # python garbage collection was not working fast enough.
+            del current_x_train
+            del current_y_train
+            # Todo: look into tracemalloc. gc.collect works but it's not perfect.
+            gc.collect()
 
-        batches_processed += 1
-        print(f'{round(len(x_train) / memory_batch)} batches to go!')
+            if loop_count >= 5:
+                print('saving off model')
+                current_time = time.time()
+                print(f'current runtime: {(current_time - start_time) / 60} minutes')
+                # TF reports epoch time, but it takes a while to load the data into Memory
+                print(f'epoch time: {current_time - epoch_time} seconds')
+                batches_remaining = round(len(x_train) / memory_batch)
+                avg_batch_time = (current_time - start_time) / batches_processed / 60
+                print(f"estimated time remaining: {batches_remaining * avg_batch_time} minutes")
+                print(f"epochs_ran: {epochs_ran}")
+                epoch_time = current_time
+                save_model(model)
+                loop_count = 0
+            loop_count += 1
 
-    save_model(model)
+            batches_processed += 1
+            print(f'{round(len(x_train) / memory_batch)} batches to go!')
+
+        print('saving model')
+        save_model(model)
+        epochs_ran += 1
+        print('overwriting list')
+        x_train = full_x_train.copy()
+        y_train = full_y_train.copy()
 
 
 def move_previous_model_folder():
@@ -211,15 +219,11 @@ def save_model(model):
     tf.keras.saving.save_model(model,
                                os.path.join(config.linux_model_location, "current_model", "my_model.keras"),
                                overwrite=True)
-    # saves as checkpoint, weights.data, and weights.index
-    # model.save_weights(filepath=os.path.join(config.linux_model_location, "current_model", "model_weights"))
-    # model.save(os.path.join(config.linux_model_location, "current_model", "beamng_model.hdf5"))
-    # model.save(os.path.join(config.linux_model_location, "current_model", "beamng_model.h5"), save_format='h5')
 
 
 if __name__ == "__main__":
     # gpu_check()
-    train_new_model = True
+    train_new_model = False
     color_mode = "grayscale"
 
     # Have to find a good balance for system memory and VRAM
@@ -239,12 +243,10 @@ if __name__ == "__main__":
 
     if train_new_model:
         move_previous_model_folder()
-        # model = build_cnn_model(img_to_array(load_img(x[0], color_mode=color_mode)).shape)
-        model = build_cnn_lstm_model(img_to_array(load_img(x[0], color_mode=color_mode)).shape)
+        model = build_cnn_model(img_to_array(load_img(x[0], color_mode=color_mode)).shape)
+        # model = build_cnn_lstm_model(img_to_array(load_img(x[0], color_mode=color_mode)).shape)
 
     else:
-        model_location = os.path.join(config.linux_model_location, "current_model", config.model_name)
+        model_location = os.path.join(config.linux_model_location, "current_model", "keras_model_dir")
         model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
-        save_model(model)
-        exit()
     train_in_batches(list(x), y.values.tolist(), model)
