@@ -1,6 +1,6 @@
 import tensorflow as tf
 from os import path
-from train import get_files, build_model
+from train import get_files, build_cnn_model
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 import config
 import pandas as pd
