@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Flatten, Dropout, Conv2D, MaxPooling2D, CategoryEncoding
+from tensorflow.keras.layers import Dense, Flatten, Dropout, Conv2D, MaxPooling2D, CategoryEncoding, LSTM, ConvLSTM2D, TimeDistributed
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 import numpy as np
 #from sklearn.model_selection import train_test_split
@@ -38,7 +38,7 @@ def get_files(recording_base_dir):
     return frame_dir_list, df_combined
 
 
-def build_model(input_shape=None):
+def build_cnn_model(input_shape=None):
     """
     Build new model based on input image.
     :return: TensorFlow Keras model
@@ -59,6 +59,30 @@ def build_model(input_shape=None):
     new_model.compile(optimizer='adam',
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
+    return new_model
+
+
+def build_cnn_lstm_model(input_shape):
+    """
+        Build new model based on input image.
+        :return: TensorFlow Keras model
+        """
+    if not input_shape:
+        sample_x = img_to_array(load_img(x[0]))
+        input_shape = sample_x.shape
+    new_model = Sequential([
+        TimeDistributed(Conv2D(filters=32, kernel_size=(3, 3), activation='tanh', input_shape=(720, 1280, 1)), input_shape=(16, 720, 1280, 1)),
+        # MaxPooling2D(pool_size=(2, 2)),
+        # ConvLSTM2D(filters=32, kernel_size=(4, 4), activation='tanh'),
+        # MaxPooling2D(pool_size=(2, 2)),
+        Flatten(),
+        Dense(32, activation='relu'),
+        # 4 labels.
+        Dense(4, activation='sigmoid')
+    ])
+    new_model.compile(optimizer='adam',
+                      loss='binary_crossentropy',
+                      metrics=['accuracy'])
     return new_model
 
 
@@ -99,7 +123,7 @@ def train_in_batches(x_train, y_train, model):
         for _ in range(memory_batch):
             if len(x_train) == 0:
                 break
-            current_x_train.append(img_to_array(load_img(x_train.pop(0))) / 255)
+            current_x_train.append(img_to_array(load_img(x_train.pop(0), color_mode=color_mode)) / 255)
             current_y_train.append(y_train.pop(0))
 
         # Datatypes must match.
@@ -125,11 +149,11 @@ def train_in_batches(x_train, y_train, model):
         if loop_count >= 5:
             print('saving off model')
             current_time = time.time()
-            print(f'current runtime: {current_time - start_time}')
+            print(f'current runtime: {(current_time - start_time) / 60} minutes')
             # TF reports epoch time, but it takes a while to load the data into Memory
-            print(f'epoch time: {current_time - epoch_time}')
+            print(f'epoch time: {current_time - epoch_time} seconds')
             batches_remaining = round(len(x_train) / memory_batch)
-            avg_batch_time = (current_time - start_time) / batches_processed * batches_remaining / 60
+            avg_batch_time = (current_time - start_time) / batches_processed / 60
             print(f"estimated time remaining: {batches_remaining * avg_batch_time} minutes")
             epoch_time = current_time
             save_model(model)
@@ -139,7 +163,7 @@ def train_in_batches(x_train, y_train, model):
         batches_processed += 1
         print(f'{round(len(x_train) / memory_batch)}batches to go!')
 
-    tf.keras.saving.save_model(model, model_location, overwrite=True)
+    save_model(model)
 
 
 def move_previous_model_folder():
@@ -169,18 +193,23 @@ def save_model(model):
     :param model: keras model
     :return:
     """
-    # Saves model in directory.
+    # Saves model in directory for windows.
     tf.keras.saving.save_model(model,
                                os.path.join(config.linux_model_location, "current_model", "keras_model_dir"),
                                overwrite=True)
+    # save model in Keras native format.
+    tf.keras.saving.save_model(model,
+                               os.path.join(config.linux_model_location, "current_model", "my_model.keras"),
+                               overwrite=True)
     # saves as checkpoint, weights.data, and weights.index
-    model.save_weights(filepath=os.path.join(config.linux_model_location, "current_model"))
-    model.save(os.path.join(config.linux_model_location, "current_model", "beamng_model.hdf5"))
-    model.save(os.path.join(config.linux_model_location, "current_model", "beamng_model.h5"), save_format='h5')
+    # model.save_weights(filepath=os.path.join(config.linux_model_location, "current_model", "model_weights"))
+    # model.save(os.path.join(config.linux_model_location, "current_model", "beamng_model.hdf5"))
+    # model.save(os.path.join(config.linux_model_location, "current_model", "beamng_model.h5"), save_format='h5')
 
 if __name__ == "__main__":
     # gpu_check()
-    new_model = False
+    train_new_model = True
+    color_mode = "grayscale"
 
     # callbacks are saved after each epoc. It's not great in our case since we're batching data into the RAM.
     save_callbacks = False
@@ -188,10 +217,14 @@ if __name__ == "__main__":
 
     x, y = get_files(recording_directory)
 
-    if new_model:
+    if train_new_model:
         move_previous_model_folder()
-        model = build_model(img_to_array(load_img(x[0])).shape)
+        # model = build_cnn_model(img_to_array(load_img(x[0], color_mode=color_mode)).shape)
+        model = build_cnn_lstm_model(img_to_array(load_img(x[0], color_mode=color_mode)).shape)
+
     else:
         model_location = os.path.join(config.linux_model_location, "current_model", config.model_name)
         model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
+        save_model(model)
+        exit()
     train_in_batches(list(x), y.values.tolist(), model)
