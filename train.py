@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Flatten, Dropout, Conv2D, MaxPooling2D, CategoryEncoding, LSTM, ConvLSTM2D, TimeDistributed
+from tensorflow.keras.layers import (Dense, Flatten, Dropout, Conv2D, MaxPooling2D, CategoryEncoding,
+                                     LSTM, ConvLSTM2D, TimeDistributed, BatchNormalization, Conv3D)
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 import numpy as np
 import pandas as pd
@@ -34,6 +35,42 @@ def get_files(recording_base_dir):
         df_combined = pd.concat([df_combined, df])
 
     return frame_dir_list, df_combined
+
+
+def build_conv_lstm(input_shape):
+    print((gpu_batch, *input_shape))
+    new_model = Sequential([
+        ConvLSTM2D(
+            filters=64,
+            kernel_size=(5, 5),
+            padding="same",
+            return_sequences=False,
+            activation="relu",
+            input_shape=(gpu_batch, *input_shape)
+        ),
+        BatchNormalization(),
+        # ConvLSTM2D(
+        #     filters=64,
+        #     kernel_size=(3, 3),
+        #     padding="same",
+        #     return_sequences=False,
+        #     activation="relu",
+        # ),
+        # BatchNormalization(),
+        # ConvLSTM2D(
+        #     filters=64,
+        #     kernel_size=(1, 1),
+        #     padding="same",
+        #     return_sequences=False,
+        #     activation="relu",
+        # ),
+        Dense(4, activation='sigmoid'),
+    ])
+    new_model.compile(optimizer='adam',
+                      loss='binary_crossentropy',
+                      metrics=['accuracy'])
+
+    return new_model
 
 
 def build_cnn_model(input_shape=None):
@@ -138,8 +175,9 @@ def train_in_batches(x_train, y_train, model):
 
             # current_x_train, current_y_train = tf.keras.utils.timeseries_dataset_from_array(current_x_train, current_y_train, sequence_length=gpu_batch)
 
-            # Datatypes must match.
+            # Datatypes must be np arrays. same as tf.stack().
             current_x_train = np.array(current_x_train)
+            # current_x_train = tf.expand_dims(current_x_train, axis=0)
             current_y_train = np.array(current_y_train)
             print("moving images from RAM to VRAM")
             if len(tf.config.list_physical_devices('GPU')):
@@ -163,12 +201,10 @@ def train_in_batches(x_train, y_train, model):
                 current_time = time.time()
                 print(f'current runtime: {(current_time - start_time) / 60} minutes')
                 # TF reports epoch time, but it takes a while to load the data into Memory
-                print(f'epoch time: {current_time - epoch_time} seconds')
                 batches_remaining = round(len(x_train) / memory_batch)
                 avg_batch_time = (current_time - start_time) / batches_processed / 60
                 print(f"estimated time remaining: {batches_remaining * avg_batch_time} minutes")
                 print(f"epochs_ran: {epochs_ran}")
-                epoch_time = current_time
                 save_model(model)
                 loop_count = 0
             loop_count += 1
@@ -179,6 +215,9 @@ def train_in_batches(x_train, y_train, model):
         print('saving model')
         save_model(model)
         epochs_ran += 1
+        current_time = time.time()
+        print(f'epoch time: {current_time - epoch_time} seconds')
+        epoch_time = current_time
         print('overwriting list')
         x_train = full_x_train.copy()
         y_train = full_y_train.copy()
@@ -223,17 +262,18 @@ def save_model(model):
 
 if __name__ == "__main__":
     # gpu_check()
-    train_new_model = False
+    train_new_model = True
     color_mode = "grayscale"
+    # type of model to build. choose one
+    lstm_and_cnn_model = False
+    cnn = False
+    pure_lstm = True
 
     # Have to find a good balance for system memory and VRAM
     # 32 batch exceeds 24GB VRAM.
     gpu_batch = 32
-    # System: 32GB ram, os uses 5GB
-    # 512 is a good match for leaving 2GB free but when laoding in a new batch is OOMs for some reason.
-    # 384 is about 5GB each batch but the initial load uses 10GB. Not sure why
-    # having issues with crashing so lower batch to 256
-    memory_batch = 512
+    # memory_batch = 256
+    memory_batch = 32
 
     # callbacks are saved after each epoc. It's not great in our case since we're batching data into the RAM.
     save_callbacks = False
@@ -243,8 +283,13 @@ if __name__ == "__main__":
 
     if train_new_model:
         move_previous_model_folder()
-        model = build_cnn_model(img_to_array(load_img(x[0], color_mode=color_mode)).shape)
-        # model = build_cnn_lstm_model(img_to_array(load_img(x[0], color_mode=color_mode)).shape)
+        input_shape = img_to_array(load_img(x[0], color_mode=color_mode)).shape
+        if lstm_and_cnn_model:
+            model = build_cnn_lstm_model(input_shape)
+        elif cnn:
+            model = build_cnn_model(input_shape)
+        elif pure_lstm:
+            model = build_conv_lstm(input_shape)
 
     else:
         model_location = os.path.join(config.linux_model_location, "current_model", "keras_model_dir")
