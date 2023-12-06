@@ -196,7 +196,7 @@ def train_in_batches(x_train, y_train, model):
             # Todo: look into tracemalloc. gc.collect works but it's not perfect.
             gc.collect()
 
-            if loop_count >= 5:
+            if loop_count >= 32:
                 print('saving off model')
                 current_time = time.time()
                 print(f'current runtime: {(current_time - start_time) / 60} minutes')
@@ -262,7 +262,7 @@ def save_model(model):
 
 if __name__ == "__main__":
     # gpu_check()
-    train_new_model = True
+    train_new_model = False
     color_mode = "grayscale"
     # type of model to build. choose one
     lstm_and_cnn_model = False
@@ -272,8 +272,8 @@ if __name__ == "__main__":
     # Have to find a good balance for system memory and VRAM
     # 32 batch exceeds 24GB VRAM.
     gpu_batch = 32
-    # memory_batch = 256
-    memory_batch = 32
+    memory_batch = 64
+    # memory_batch = 64
 
     # callbacks are saved after each epoc. It's not great in our case since we're batching data into the RAM.
     save_callbacks = False
