@@ -264,7 +264,7 @@ if __name__ == "__main__":
     # gpu_check()
     train_new_model = False
     color_mode = "grayscale"
-    # type of model to build. choose one
+    # type of NEW model to build. choose one. If not new model arch will be loaded of existing
     lstm_and_cnn_model = False
     cnn = False
     pure_lstm = True
