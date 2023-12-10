@@ -1,6 +1,6 @@
 from os import path
 
-model_name = "current_model.keras"
+model_name = "my_model.keras"
 
 windows_base_path = path.join("O:", "neural_networks")
 windows_training_directory = path.join(windows_base_path, "recordings", "training")
