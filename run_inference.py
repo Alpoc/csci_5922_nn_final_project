@@ -13,6 +13,9 @@ from matplotlib import pyplot as plt
 import matplotlib.image as mpimg
 import cv2
 import pygame
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+
 
 def validate_model(model, x_test, y_test):
     memory_batch = 256
@@ -44,6 +47,35 @@ def validate_model(model, x_test, y_test):
         del current_y_train
         gc.collect()
     print(f'total accuracy: {accumulative_accuracy / validation_rounds}')
+
+
+def conf_model(model, x_test, y_test):
+    predictions = []
+    for i in range(len(x_test)):
+        single_x = img_to_array(load_img(x_test[i], color_mode="grayscale")) / 255
+        # normally our datashape is (num_pictures, width, height, depth)
+        # only one image will be (width, height, depth)
+        single_x = single_x.reshape(-1, single_x.shape[0], single_x.shape[1], single_x.shape[2])
+        predictions.append(model.predict(single_x, verbose=False)[0])
+
+    # Confusion Matrix
+    y_pred = np.argmax(predictions, axis=1)
+
+    y_pred_labels = []
+    for index, row in y_test.iterrows():
+        y_pred_labels.append(row.argmax())
+
+    conf_matrix = confusion_matrix(y_pred_labels, y_pred)
+
+    # Plot confusion matrix
+    class_names = list(set(y_test))
+    df = pd.DataFrame(conf_matrix, index=class_names, columns=class_names)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(df, annot=True, fmt='d', cmap='Blues')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title('Confusion Matrix')
+    plt.show()
 
 
 def visualize_prediction(model, x_test, y_test):
@@ -123,7 +155,7 @@ def inference_on_game(model):
 
 if __name__ == "__main__":
     # Turn on to run model.validate on testing data, otherwise run inference on live game.
-    validate = True
+    validate = False
     grayscale = True
     # run two inference steps and average the results together.
     average_results = False
@@ -136,7 +168,7 @@ if __name__ == "__main__":
     if path.exists(config.windows_testing_directory):
         x, y = get_files(config.windows_testing_directory)
         x_shape = img_to_array(load_img(x[0])).shape
-        model_location = path.join(config.windows_model_location, "current_model_cnn_lstm_25_epochs", "keras_model_dir")
+        model_location = path.join(config.windows_model_location, "current_model_cnn_100_epochs", "keras_model_dir")
         #model = tf.keras.models.load_model(model_location, custom_objects=None, compile=True)
     else:
         x, y = get_files(config.linux_testing_directory)
@@ -147,9 +179,11 @@ if __name__ == "__main__":
     # model.summary()
     # exit()
 
-    visualize_prediction(model, x, y)
-    # if validate:
-    #     validate_model(model, list(x), y.values.tolist())
-    # else:
-    #     inference_on_game(model)
+    # conf_model(model, x, y)
+    #visualize_prediction(model, x, y)
+
+    if validate:
+        validate_model(model, list(x), y.values.tolist())
+    else:
+        inference_on_game(model)
 

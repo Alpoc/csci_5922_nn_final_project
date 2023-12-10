@@ -102,3 +102,4 @@ if __name__ == "__main__":
     camera.start(region=(0, 0, 1280, 720), target_fps=target_framerate)
     thread = True
     record_session()
+                                                                                                                                                                                   (1, 720, 1280, 1)
