@@ -21,3 +21,5 @@
   - backup to the center of the track.
 - Hit the "6" key to change camera mode to "Chase"
 - "f9" to start recording. "f9" or "esc" to end
+
+- kill -9 $(pgrep -f "run_inference")
