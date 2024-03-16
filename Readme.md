@@ -7,6 +7,13 @@
 - nice little article for getting TF GPU working
   - https://medium.com/nerd-for-tech/installing-tensorflow-with-gpu-acceleration-on-linux-f3f55dd15a9
 
+
+### My conda setup. above it outdated
+- `conda create --name tf`
+- `conda install tensorflow-gpu -c conda-forge -y`
+- `python3 -m pip install --upgrade Pillow`
+- `pip intstall -r requirements.txt`
+
 ### BeamNG.drive setup
 - set second monitor to 720p
 - launch BeamNG.drive and move to second monitor. In windowed mode
