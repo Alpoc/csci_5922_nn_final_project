@@ -1,21 +1,20 @@
 import tensorflow as tf
-from os import path
-from train import get_files, build_cnn_model
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
-import config
-import pandas as pd
-import gc
-import numpy as np
+
 import time
-from matplotlib import pyplot as plt
-import matplotlib.image as mpimg
-import cv2
+import gc
 import pygame
+import pandas as pd
+import numpy as np
+import cv2
+from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
+from utils import load_keras_model
 
-# Lots off incompatable libraries on windows vs linux
+
+# Lots off incompatible libraries on windows vs linux
 ON_WINDOWS = False
 
 if ON_WINDOWS:
@@ -181,19 +180,7 @@ if __name__ == "__main__":
     pygame.init()
     clock = pygame.time.Clock()
 
-    # The naming convention is 'my_model.keras'. Windows views that as a file instead of a directory.
-    # Both the standard and custom naming conventions will be used when saving model during training.
-    if path.exists(config.windows_testing_directory):
-        x, y = get_files(config.windows_testing_directory)
-        x_shape = img_to_array(load_img(x[0])).shape
-        model_location = path.join(config.windows_model_location, "current_model_cnn_100_epochs", "keras_model_dir")
-        #model = tf.keras.models.load_model(model_location, custom_objects=None, compile=True)
-    else:
-        x, y = get_files(config.linux_testing_directory)
-        model_location = path.join(config.linux_model_location, "current_model_cnn_100_epochs", "keras_model_dir")
-        # model_location = path.join(config.linux_model_location, "current_model_cnn_100_epochs", config.model_name)
-        # model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
-    model = tf.keras.models.load_model(model_location, custom_objects=None, compile=True)
+    keras_model, x, y = load_keras_model()
 
     # model.summary()
     # exit()
@@ -202,7 +189,7 @@ if __name__ == "__main__":
     #visualize_prediction(model, x, y)
 
     if validate:
-        validate_model(model, list(x), y.values.tolist())
+        validate_model(keras_model, list(x), y.values.tolist())
     else:
-        inference_on_game(model)
+        inference_on_game(keras_model)
 

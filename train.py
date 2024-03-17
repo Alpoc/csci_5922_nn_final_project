@@ -262,6 +262,7 @@ def save_model(model):
 
 if __name__ == "__main__":
     # gpu_check()
+    # It not train_new_model the "current_model" will be loaded and training will continue.
     train_new_model = False
     color_mode = "grayscale"
     # type of NEW model to build. choose one. If not new model arch will be loaded of existing
@@ -269,11 +270,11 @@ if __name__ == "__main__":
     cnn = False
     pure_lstm = True
 
-    # Have to find a good balance for system memory and VRAM
+    # Have to find a good balance for system memory and VRAM. gpu_batch will need to be changed depending on model size.
     # 32 batch exceeds 24GB VRAM.
     gpu_batch = 32
-    memory_batch = 64
-    # memory_batch = 64
+    # Load num images from storage to memory.
+    memory_batch = 256
 
     # callbacks are saved after each epoc. It's not great in our case since we're batching data into the RAM.
     save_callbacks = False
