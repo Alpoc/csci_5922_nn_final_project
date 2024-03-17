@@ -1,3 +1,7 @@
+"""
+A small script for testing keyboard playback.
+"""
+
 from pynput.keyboard import Key, Controller, Listener
 import pygame
 import time

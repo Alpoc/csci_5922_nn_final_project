@@ -92,6 +92,8 @@ def record_session():
 
 
 if __name__ == "__main__":
+    # Save off images in a separate thread to maintain performance
+    thread = True
     pygame.init()
     clock = pygame.time.Clock()
     keystrokes = []
@@ -100,6 +102,6 @@ if __name__ == "__main__":
     # https://github.com/ra1nty/DXcam
     camera = dxcam.create(device_idx=0, output_idx=1)
     camera.start(region=(0, 0, 1280, 720), target_fps=target_framerate)
-    thread = True
+
     record_session()
                                                                                                                                                                                    (1, 720, 1280, 1)

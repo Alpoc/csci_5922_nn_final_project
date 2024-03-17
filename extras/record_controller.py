@@ -1,3 +1,7 @@
+"""
+Test script for trying to get a controllers inputs. Not successful.
+"""
+
 import pygame
 import keyboard
 import time

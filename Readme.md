@@ -1,3 +1,5 @@
+This program is an suite of scripts for creating a supervised training model for the game BeamNG.drive.
+Most of the functionality is hidden behind variables in main.
 
 ### To Train
 - ensure that the file location in config.py is correct.
@@ -6,6 +8,13 @@
 
 - nice little article for getting TF GPU working
   - https://medium.com/nerd-for-tech/installing-tensorflow-with-gpu-acceleration-on-linux-f3f55dd15a9
+
+
+### Recording game sessions
+To record game sessions and run inference you'll need to ensure that the screen is in the
+correct location. Both run_inference file and  game_session_recorder expect the screen to be on the
+second screen in the top left corner. With run_inference pressing "f8" will display an image of
+what the camera is seeing. An equivalent in linux is still needed.
 
 
 ### My conda setup. above it outdated

@@ -1,5 +1,7 @@
+"""
+Convert TIF images to png format for keras data loader
+"""
 import os
-import tif as tif
 import glob
 from PIL import Image
 

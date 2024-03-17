@@ -1,16 +1,17 @@
+"""
+Suite of methods to run inference and visualize model performance. Visualization may move.
+"""
 import tensorflow as tf
 from os import path
-from train import get_files, build_cnn_model
+from train import get_files
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 import config
 import pandas as pd
 import gc
 import numpy as np
 import dxcam
-import time
 import keyboard
 from matplotlib import pyplot as plt
-import matplotlib.image as mpimg
 import cv2
 import pygame
 from sklearn.metrics import confusion_matrix
@@ -18,6 +19,14 @@ import seaborn as sns
 
 
 def validate_model(model, x_test, y_test):
+    """
+    Get accuracy of inputs vs outputs. This is not a good way of doing it but it is used
+    for an example for the class presentation.
+    args:
+        model: loaded Keras model to use
+        x_test: list of test images
+        y_test: list of lists of expected output keyboard values.
+    """
     memory_batch = 256
     validation_rounds = 0
     accumulative_accuracy = 0
@@ -50,6 +59,13 @@ def validate_model(model, x_test, y_test):
 
 
 def conf_model(model, x_test, y_test):
+    """
+    Create a confusion plot to visualize predictions
+    args:
+        model: loaded Keras model to use
+        x_test: list of test images
+        y_test: list of lists of expected output keyboard values.
+    """
     predictions = []
     for i in range(len(x_test)):
         single_x = img_to_array(load_img(x_test[i], color_mode="grayscale")) / 255
@@ -79,6 +95,13 @@ def conf_model(model, x_test, y_test):
 
 
 def visualize_prediction(model, x_test, y_test):
+    """
+    Loop through images and print predicted output to the console.
+    args:
+        model: loaded Keras model to use
+        x_test: list of test images
+        y_test: list of lists of expected output keyboard values.
+    """
     for i in range(len(x_test)):
         single_x = img_to_array(load_img(x_test[i], color_mode="grayscale")) / 255
         # normally our datashape is (num_pictures, width, height, depth)
