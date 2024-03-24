@@ -1,137 +1,14 @@
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import (Dense, Flatten, Dropout, Conv2D, MaxPooling2D, CategoryEncoding,
-                                     LSTM, ConvLSTM2D, TimeDistributed, BatchNormalization, Conv3D)
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
+
+from build_models import build_cnn_model, build_cnn_lstm_model, build_conv_lstm
+from utils import get_files
+
 import numpy as np
-import pandas as pd
 import os
 import gc
 import config
 import time
-
-
-def get_files(recording_base_dir):
-    """
-    TODO: use glob instead for easier code comprehension
-    Cannot load the image files into memory. Too large.
-    :return: list of files, json keypress file
-    """
-    frame_dir_list = []
-    df_combined = pd.DataFrame()
-
-    recordings = os.listdir(recording_base_dir)
-    for session_dir in recordings:
-        recording_dir = os.path.join(recording_base_dir, session_dir)
-
-        video_frame_dir = os.path.join(recording_dir, "video_images")
-        frame_list = os.listdir(video_frame_dir)
-
-        frame_dir_list.extend([os.path.join(video_frame_dir, frame) for frame in frame_list])
-
-        recording_file = 'inputs.csv'
-        df = pd.read_csv(os.path.join(recording_dir, recording_file))
-        df = df.drop(columns=df.columns[0], axis=1)
-        df_combined = pd.concat([df_combined, df])
-
-    return frame_dir_list, df_combined
-
-
-def build_conv_lstm(input_shape):
-    print((gpu_batch, *input_shape))
-    new_model = Sequential([
-        ConvLSTM2D(
-            filters=64,
-            kernel_size=(5, 5),
-            padding="same",
-            return_sequences=False,
-            activation="relu",
-            input_shape=(gpu_batch, *input_shape)
-        ),
-        BatchNormalization(),
-        # ConvLSTM2D(
-        #     filters=64,
-        #     kernel_size=(3, 3),
-        #     padding="same",
-        #     return_sequences=False,
-        #     activation="relu",
-        # ),
-        # BatchNormalization(),
-        # ConvLSTM2D(
-        #     filters=64,
-        #     kernel_size=(1, 1),
-        #     padding="same",
-        #     return_sequences=False,
-        #     activation="relu",
-        # ),
-        Dense(4, activation='sigmoid'),
-    ])
-    new_model.compile(optimizer='adam',
-                      loss='binary_crossentropy',
-                      metrics=['accuracy'])
-
-    return new_model
-
-
-def build_cnn_model(input_shape=None):
-    """
-    Build new model based on input image.
-    :return: TensorFlow Keras model
-    """
-    if not input_shape:
-        sample_x = img_to_array(load_img(x[0]))
-        input_shape = sample_x.shape
-    new_model = Sequential([
-        Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=input_shape),
-        MaxPooling2D(pool_size=(2, 2)),
-        Conv2D(filters=32, kernel_size=(4, 4), activation='relu'),
-        MaxPooling2D(pool_size=(2, 2)),
-        Flatten(),
-        Dense(32, activation='relu'),
-        # 4 labels.
-        Dense(4, activation='sigmoid')
-    ])
-    new_model.compile(optimizer='adam',
-                  loss='binary_crossentropy',
-                  metrics=['accuracy'])
-    return new_model
-
-
-def build_cnn_lstm_model(input_shape):
-    """
-        Build new model based on input image.
-        :return: TensorFlow Keras model
-    """
-    if not input_shape:
-        sample_x = img_to_array(load_img(x[0]))
-        input_shape = sample_x.shape
-    # new_model = Sequential([
-    #     TimeDistributed(Conv2D(filters=16, kernel_size=(3, 3), activation='tanh'),
-    #                     input_shape=(gpu_batch, 720, 1280, 1)),
-    #     # ConvLSTM2D(filters=16, kernel_size=(3, 3), activation='tanh', input_shape=(720, 1280, 1)),
-    #     # MaxPooling2D(pool_size=(2, 2)),
-    #     # ConvLSTM2D(filters=32, kernel_size=(4, 4), activation='tanh'),
-    #     # MaxPooling2D(pool_size=(2, 2)),
-    #     Flatten(),
-    #     Dense(32, activation='relu'),
-    #     # 4 labels.
-    #     Dense(4, activation='sigmoid')
-    # ])
-
-    new_model = Sequential([
-        Conv2D(filters=64, kernel_size=(3, 3), input_shape=input_shape),
-        MaxPooling2D(pool_size=(2, 2)),
-        TimeDistributed(Flatten()),
-        LSTM(32),
-        Flatten(),
-        Dense(32, activation='relu'),
-        # 4 labels.
-        Dense(4, activation='sigmoid')
-    ])
-    new_model.compile(optimizer='adam',
-                      loss='binary_crossentropy',
-                      metrics=['accuracy'])
-    return new_model
 
 
 def train_in_batches(x_train, y_train, model):
@@ -170,7 +47,7 @@ def train_in_batches(x_train, y_train, model):
             for _ in range(memory_batch):
                 if len(x_train) == 0:
                     break
-                current_x_train.append(img_to_array(load_img(x_train.pop(0), color_mode=color_mode)) / 255)
+                current_x_train.append(img_to_array(load_img(x_train.pop(0), color_mode=config.color_mode)) / 255)
                 current_y_train.append(y_train.pop(0))
 
             # current_x_train, current_y_train = tf.keras.utils.timeseries_dataset_from_array(current_x_train, current_y_train, sequence_length=gpu_batch)
@@ -184,11 +61,11 @@ def train_in_batches(x_train, y_train, model):
                 with tf.device("/GPU:0"):
                     if save_callbacks:
                         model_hist = model.fit(current_x_train, current_y_train,
-                                               epochs=epochs, batch_size=gpu_batch,
+                                               epochs=epochs, batch_size=config.gpu_batch,
                                                callbacks=[cp_callback])
                     else:
                         model_hist = model.fit(current_x_train, current_y_train,
-                                               epochs=epochs, batch_size=gpu_batch)
+                                               epochs=epochs, batch_size=config.gpu_batch)
 
             # python garbage collection was not working fast enough.
             del current_x_train
@@ -264,15 +141,12 @@ if __name__ == "__main__":
     # gpu_check()
     # It not train_new_model the "current_model" will be loaded and training will continue.
     train_new_model = False
-    color_mode = "grayscale"
+
     # type of NEW model to build. choose one. If not new model arch will be loaded of existing
     lstm_and_cnn_model = False
     cnn = False
     pure_lstm = True
 
-    # Have to find a good balance for system memory and VRAM. gpu_batch will need to be changed depending on model size.
-    # 32 batch exceeds 24GB VRAM.
-    gpu_batch = 32
     # Load num images from storage to memory.
     memory_batch = 256
 
@@ -284,15 +158,15 @@ if __name__ == "__main__":
 
     if train_new_model:
         move_previous_model_folder()
-        input_shape = img_to_array(load_img(x[0], color_mode=color_mode)).shape
+        input_shape = img_to_array(load_img(x[0], color_mode=config.color_mode)).shape
         if lstm_and_cnn_model:
-            model = build_cnn_lstm_model(input_shape)
+            keras_model = build_cnn_lstm_model(input_shape)
         elif cnn:
-            model = build_cnn_model(input_shape)
+            keras_model = build_cnn_model(input_shape)
         elif pure_lstm:
-            model = build_conv_lstm(input_shape)
+            keras_model = build_conv_lstm(input_shape)
 
     else:
         model_location = os.path.join(config.linux_model_location, "current_model", "keras_model_dir")
-        model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
-    train_in_batches(list(x), y.values.tolist(), model)
+        keras_model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
+    train_in_batches(list(x), y.values.tolist(), keras_model)
