@@ -98,7 +98,7 @@ if __name__ == "__main__":
     clock = pygame.time.Clock()
     keystrokes = []
     images = []
-    target_framerate = 30
+    target_framerate = 60
     # https://github.com/ra1nty/DXcam
     camera = dxcam.create(device_idx=0, output_idx=1)
     camera.start(region=(0, 0, 1280, 720), target_fps=target_framerate)

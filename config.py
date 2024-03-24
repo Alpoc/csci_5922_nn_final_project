@@ -3,6 +3,8 @@ from os import path
 model_name = "my_model.keras"
 model_windows_name = "keras_model_dir"
 model_dir_name = "current_model_cnn_lstm_25_epochs"
+# model_dir_name = "current_model_cnn_100_epochs"
+
 
 windows_base_path = path.join("O:", "neural_networks")
 windows_training_directory = path.join(windows_base_path, "recordings", "training")

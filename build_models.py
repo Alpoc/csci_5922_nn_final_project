@@ -98,9 +98,25 @@ def build_cnn_lstm_model(input_shape):
 
 
 def build_test_cnn(input_shape):
+    """
+    Model used for visualizing CNNs
+    """
     new_model = Sequential([
-        Conv2D(filters=8, kernel_size=(128, 128), activation='relu', input_shape=input_shape),
-        Conv2D(filters=8, kernel_size=(64, 64), activation='relu'),
+        Conv2D(filters=12, kernel_size=(16, 9), activation='relu', input_shape=input_shape),
+    ])
+    new_model.compile(optimizer='adam',
+                      loss='binary_crossentropy',
+                      metrics=['accuracy'])
+    return new_model
+
+
+def build_test_cnn_with_pooling(input_shape):
+    """
+    Model used for Visualizing max pooling
+    """
+    new_model = Sequential([
+        Conv2D(filters=8, kernel_size=(32, 32), activation='relu', input_shape=input_shape),
+        MaxPooling2D(pool_size=(2, 2)),
     ])
     new_model.compile(optimizer='adam',
                       loss='binary_crossentropy',
