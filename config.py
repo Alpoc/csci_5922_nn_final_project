@@ -22,4 +22,4 @@ grayscale = True
 color_mode = "grayscale"
 
 # Number of images to batch to the GPU. gpu_batch will need to be changed depending on model size.
-gpu_batch_size = 32
+gpu_batch = 32

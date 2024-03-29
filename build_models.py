@@ -115,8 +115,47 @@ def build_test_cnn_with_pooling(input_shape):
     Model used for Visualizing max pooling
     """
     new_model = Sequential([
-        Conv2D(filters=8, kernel_size=(32, 32), activation='relu', input_shape=input_shape),
+        Conv2D(filters=8, kernel_size=(4, 4), activation='relu', input_shape=input_shape),
         MaxPooling2D(pool_size=(2, 2)),
+        Conv2D(filters=8, kernel_size=(8, 8), activation='relu', input_shape=input_shape),
+    ])
+    new_model.compile(optimizer='adam',
+                      loss='binary_crossentropy',
+                      metrics=['accuracy'])
+    return new_model
+
+
+def build_test_cnn_model(input_shape):
+    """
+    Model used for Visualizing max pooling
+    """
+    new_model = Sequential([
+        Conv2D(filters=8, kernel_size=(4, 4), activation='relu', input_shape=input_shape),
+        MaxPooling2D(pool_size=(2, 2)),
+        Conv2D(filters=8, kernel_size=(8, 8), activation='relu', input_shape=input_shape),
+        Flatten(),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(128, activation='relu'),
+        # 4 labels.
+        Dense(4, activation='sigmoid')
     ])
     new_model.compile(optimizer='adam',
                       loss='binary_crossentropy',

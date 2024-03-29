@@ -1,6 +1,7 @@
 """
 This module contains various visualizations to try and get a glimpse into what the model is learning.
 """
+import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 
@@ -10,6 +11,7 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 import gc
+import time
 
 import build_models
 from utils import load_keras_model, get_files
@@ -58,7 +60,9 @@ def visualize_feature_map(model, x_test):
 
         single_x = img_to_array(load_img(x_test[image_index], color_mode="grayscale"))
         single_x = single_x.reshape(-1, single_x.shape[0], single_x.shape[1], single_x.shape[2])
+        # start_time = time.time()
         features = feature_model.predict(single_x, verbose=False)
+        # print(f"Layer took {time.time() - start_time} seconds to predict")
 
         plt.figure(figsize=(16, 9))
         if not single_visual:
@@ -83,7 +87,8 @@ def visualize_feature_map(model, x_test):
 
 def visualize_model(feature_model, x_test):
     """
-    Similar to visualizing the feature map except we will use custom models to maintain features with pooling
+    Visualize the final output of a sample model.
+    feature_model: keras model where the final layer needs to be an image
     """
     single_visual = True
 
@@ -218,13 +223,20 @@ if __name__ == "__main__":
 
     recording_directory = config.linux_testing_directory
 
+    memory_stats = tf.config.experimental.get_memory_info("GPU:0")
+    peak_usage = round(memory_stats["peak"] / (2 ** 30), 3)
+    print(peak_usage)
+
     if test_model:
         x, y = get_files(recording_directory)
         input_shape = img_to_array(load_img(x[0], color_mode=config.color_mode)).shape
         # keras_model = build_models.build_test_cnn(input_shape)
-        keras_model = build_models.build_test_cnn_with_pooling(input_shape)
+        # keras_model = build_models.build_test_cnn_with_pooling(input_shape)
+        keras_model = build_models.build_test_cnn_model(input_shape)
     else:
         keras_model, x, y = load_keras_model()
+
+
 
     # keras_model.summary()
     # exit()
@@ -235,6 +247,12 @@ if __name__ == "__main__":
     # visualize_kernels(model=keras_model)
     visualize_feature_map(keras_model, x)
     # visualize_model(keras_model, x)
+
+    print(keras_model.summary())
+
+    print(tf.config.experimental.get_memory_info("GPU:0"))
+    peak_usage = round(memory_stats["peak"] / (2 ** 30), 3)
+    print(peak_usage)
 
     if validate:
         model_accuracy(keras_model, list(x), y.values.tolist())
