@@ -28,7 +28,7 @@ def load_images_into_memory(x_train, y_train):
         next_x_train = []
         next_y_train = []
         print("loading images into memory")
-        for _ in range(memory_batch):
+        for _ in range(config.memory_batch):
             if len(x_train) == 0:
                 x_train = full_x_train.copy()
                 y_train = full_y_train.copy()
@@ -111,7 +111,7 @@ def train_in_batches(x_train, y_train, model):
                 current_time = time.time()
                 print(f'current runtime: {(current_time - start_time) / 60} minutes')
                 # TF reports epoch time, but it takes a while to load the data into Memory
-                batches_remaining = round(len(x_train) / memory_batch)
+                batches_remaining = round(len(x_train) / config.memory_batch)
                 avg_batch_time = (current_time - start_time) / batches_processed / 60
                 print(f"estimated time remaining: {batches_remaining * avg_batch_time} seconds")
                 print(f"epochs_ran: {epochs_ran}")
@@ -120,8 +120,9 @@ def train_in_batches(x_train, y_train, model):
             loop_count += 1
 
             batches_processed += 1
-            print(f'{round(len(x_train) / memory_batch)} batches to go!')
             print(f"batch time: {time.time() - batch_start_time}")
+            print(f'{round(len(x_train) / config.memory_batch)} batches to go!')
+
 
         print('saving model')
         save_model(model)
@@ -180,9 +181,6 @@ if __name__ == "__main__":
     lstm_and_cnn_model = False
     cnn = False
     pure_lstm = False
-
-    # Load num images from storage to memory.
-    memory_batch = 256
 
     # callbacks are saved after each epoc. It's not great in our case since we're batching data into the RAM.
     save_callbacks = False
