@@ -1,7 +1,8 @@
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 
-from build_models import build_cnn_model, build_cnn_lstm_model, build_conv_lstm
+
+import build_models
 from utils import get_files
 
 import numpy as np
@@ -58,7 +59,7 @@ def train_in_batches(x_train, y_train, model):
             current_x_train = np.array(current_x_train)
             # current_x_train = tf.expand_dims(current_x_train, axis=0)
             current_y_train = np.array(current_y_train)
-            print("moving images from RAM to VRAM")
+            print("Fitting batch in GPU")
             if len(tf.config.list_physical_devices('GPU')):
                 with tf.device("/GPU:0"):
                     if save_callbacks:
@@ -143,12 +144,12 @@ def save_model(model):
 if __name__ == "__main__":
     # gpu_check()
     # It not train_new_model the "current_model" will be loaded and training will continue.
-    train_new_model = False
+    train_new_model = True
 
     # type of NEW model to build. choose one. If not new model arch will be loaded of existing
     lstm_and_cnn_model = False
     cnn = False
-    pure_lstm = True
+    pure_lstm = False
 
     # callbacks are saved after each epoc. It's not great in our case since we're batching data into the RAM.
     save_callbacks = False
@@ -160,11 +161,13 @@ if __name__ == "__main__":
         move_previous_model_folder()
         input_shape = img_to_array(load_img(x[0], color_mode=config.color_mode)).shape
         if lstm_and_cnn_model:
-            keras_model = build_cnn_lstm_model(input_shape)
+            keras_model = build_models.build_cnn_lstm_model(input_shape)
         elif cnn:
-            keras_model = build_cnn_model(input_shape)
+            keras_model = build_models.build_cnn_model(input_shape)
         elif pure_lstm:
-            keras_model = build_conv_lstm(input_shape)
+            keras_model = build_models.build_conv_lstm(input_shape)
+        else:
+            keras_model = build_models.build_test_cnn_model(input_shape)
 
     else:
         model_location = os.path.join(config.linux_model_location, "current_model", "keras_model_dir")
