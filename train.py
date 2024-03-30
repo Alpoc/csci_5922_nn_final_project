@@ -39,6 +39,7 @@ def load_images_into_memory(x_train, y_train):
         memory_y_batches.append(np.array(next_y_train))
         print("done loading into memory")
 
+
 def train_in_batches(x_train, y_train, model):
     """
     We cannot load all of the frames into memory so do it incrementally.
@@ -49,9 +50,6 @@ def train_in_batches(x_train, y_train, model):
     :param y_test:
     :return:
     """
-
-
-
     checkpoint_path = "model_weights/cp.ckpt"
     checkpoint_dir = os.path.dirname(checkpoint_path)
 
@@ -175,7 +173,7 @@ def save_model(model):
 if __name__ == "__main__":
     # gpu_check()
     # It not train_new_model the "current_model" will be loaded and training will continue.
-    train_new_model = False
+    train_new_model = True
 
     # type of NEW model to build. choose one. If not new model arch will be loaded of existing
     lstm_and_cnn_model = False

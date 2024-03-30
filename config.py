@@ -12,7 +12,7 @@ windows_testing_directory = path.join(windows_base_path, "recordings", "testing"
 windows_model_location = path.join(windows_base_path, "models")
 
 linux_base_path = path.join("/media", "dj", "Games Drive", "neural_networks", )
-linux_training_directory = path.join(linux_base_path, "recordings", "training")
+linux_training_directory = path.join(linux_base_path, "recordings", "training", "hirochi_donut_regular")
 linux_testing_directory = path.join(linux_base_path, "recordings", "testing")
 linux_model_location = path.join(linux_base_path, "models")
 
@@ -22,6 +22,6 @@ grayscale = True
 color_mode = "grayscale"
 
 # Number of images to batch to the GPU. gpu_batch will need to be changed depending on model size.
-gpu_batch = 64
+gpu_batch = 8
 # Load num images from storage to memory/RAM.
-memory_batch = 512
+memory_batch = 1024
