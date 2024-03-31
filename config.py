@@ -22,6 +22,8 @@ grayscale = True
 color_mode = "grayscale"
 
 # Number of images to batch to the GPU. gpu_batch will need to be changed depending on model size.
-gpu_batch = 8
+gpu_batch = 16
 # Load num images from storage to memory/RAM.
-memory_batch = 1024
+# 4096 seems to use a peak of 48GB as it load images and GPU stuff. Only visually checked so may not be reliable info.
+# memory_batch = 4096
+memory_batch = 3072

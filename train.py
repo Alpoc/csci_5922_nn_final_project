@@ -30,23 +30,31 @@ def train_in_batches(x_train, y_train, model):
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                      save_weights_only=True,
                                                      verbose=1)
-
+    # num epochs to run on current bach of data
     epochs = 1
     loop_count = 0
     start_time = epoch_time = time.time()
     batches_processed = 0
 
+    epoch_run_times = []
+
     full_x_train = x_train.copy()
     full_y_train = y_train.copy()
-    epochs_ran = 0
+
+    epochs_file = os.path.join(config.linux_model_location, "current_model", "epochs_ran.txt")
+    if os.path.exists(epochs_file):
+        with open(epochs_file, "r") as f:
+            epochs_ran = int(f.read())
+    else:
+        epochs_ran = 0
 
     for _ in range(1000):
         while len(x_train) > 0:
             batch_start_time = time.time()
-            batch_start_time = time.time()
             current_x_train = []
             current_y_train = []
             print("loading images into memory")
+            # This really takes a long time. There is a concurrency branch on github but it doesn't work reliably.
             for _ in range(config.memory_batch):
                 if len(x_train) == 0:
                     break
@@ -60,15 +68,16 @@ def train_in_batches(x_train, y_train, model):
             # current_x_train = tf.expand_dims(current_x_train, axis=0)
             current_y_train = np.array(current_y_train)
             print("Fitting batch in GPU")
-            if len(tf.config.list_physical_devices('GPU')):
-                with tf.device("/GPU:0"):
-                    if save_callbacks:
-                        model_hist = model.fit(current_x_train, current_y_train,
-                                               epochs=epochs, batch_size=config.gpu_batch,
-                                               callbacks=[cp_callback])
-                    else:
-                        model_hist = model.fit(current_x_train, current_y_train,
-                                               epochs=epochs, batch_size=config.gpu_batch)
+
+            with tf.device("/GPU:0"):
+                if save_callbacks:
+                    model_hist = model.fit(current_x_train, current_y_train,
+                                           epochs=epochs, batch_size=config.gpu_batch,
+                                           callbacks=[cp_callback])
+                else:
+                    model_hist = model.fit(current_x_train, current_y_train,
+                                           epochs=epochs, batch_size=config.gpu_batch)
+
 
             # python garbage collection was not working fast enough.
             del current_x_train
@@ -76,8 +85,8 @@ def train_in_batches(x_train, y_train, model):
             # Todo: look into tracemalloc. gc.collect works but it's not perfect.
             gc.collect()
 
-            if loop_count >= 32:
-                print('saving off model')
+            # Intermediary info
+            if loop_count >= 8:
                 current_time = time.time()
                 print(f'current runtime: {(current_time - start_time) / 60} minutes')
                 # TF reports epoch time, but it takes a while to load the data into Memory
@@ -85,8 +94,12 @@ def train_in_batches(x_train, y_train, model):
                 avg_batch_time = (current_time - start_time) / batches_processed / 60
                 print(f"estimated time remaining: {batches_remaining * avg_batch_time} minutes")
                 print(f"epochs_ran: {epochs_ran}")
-                save_model(model)
+                # print('saving off model')
+                # save_model(model)
                 loop_count = 0
+                memory_stats = tf.config.experimental.get_memory_info("GPU:0")
+                peak_usage = round(memory_stats["peak"] / (2 ** 30), 3)
+                print(peak_usage)
             loop_count += 1
 
             batches_processed += 1
@@ -96,10 +109,17 @@ def train_in_batches(x_train, y_train, model):
         print('saving model')
         save_model(model)
         epochs_ran += 1
+        with open(epochs_file, "w") as f:
+            f.write(str(epochs_ran))
+
         current_time = time.time()
-        print(f'epoch time: {current_time - epoch_time} seconds')
+        epoch_run_time = (current_time - epoch_time) / 60
+        print(f'epoch time: {epoch_run_time} minutes')
+        epoch_run_times.append(epoch_run_time)
+        average_epoch_time = sum(epoch_run_times) / len(epoch_run_times)
+        print(f'Average epoch run time: {average_epoch_time}')
         epoch_time = current_time
-        print('overwriting list')
+
         x_train = full_x_train.copy()
         y_train = full_y_train.copy()
 
@@ -116,10 +136,12 @@ def move_previous_model_folder():
 
 
 def gpu_check():
-    print('yum')
+    """
+    Simple method to check if the GPU is available
+    """
     num_gpus = len(tf.config.list_physical_devices('GPU'))
-    print("Num GPUs Available: ", num_gpus)
-    print(tf.test.is_built_with_cuda())
+    # print("Num GPUs Available: ", num_gpus)
+    # print(tf.test.is_built_with_cuda())
     if not num_gpus:
         print('only cpu training available. Remove gpu check to continue')
         exit()
@@ -142,9 +164,12 @@ def save_model(model):
 
 
 if __name__ == "__main__":
-    # gpu_check()
+    # Getting a memory malloc error, trying to solve.
+    # os.environ["tf_gpu_allocator"] = "cuda_malloc_async"
+
+    gpu_check()
     # It not train_new_model the "current_model" will be loaded and training will continue.
-    train_new_model = True
+    train_new_model = False
 
     # type of NEW model to build. choose one. If not new model arch will be loaded of existing
     lstm_and_cnn_model = False
@@ -167,9 +192,11 @@ if __name__ == "__main__":
         elif pure_lstm:
             keras_model = build_models.build_conv_lstm(input_shape)
         else:
-            keras_model = build_models.build_test_cnn_model(input_shape)
+            # Set whatever model you want manually
+            keras_model = build_models.build_cnn_model_48x10_nn(input_shape)
 
     else:
         model_location = os.path.join(config.linux_model_location, "current_model", "keras_model_dir")
         keras_model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
+    keras_model.summary()
     train_in_batches(list(x), y.values.tolist(), keras_model)
