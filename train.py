@@ -21,13 +21,13 @@ def load_images_into_memory(x_train, y_train):
     full_x_train = x_train.copy()
     full_y_train = y_train.copy()
     while True:
-        if len(memory_x_batches) > 1:
+        if len(memory_x_batches) > 2:
             # print("batch filled")
-            time.sleep(0.25)
+            time.sleep(1)
             continue
         next_x_train = []
         next_y_train = []
-        print("loading images into memory")
+        # print("loading images into memory")
         for _ in range(config.memory_batch):
             if len(x_train) == 0:
                 x_train = full_x_train.copy()
@@ -37,7 +37,7 @@ def load_images_into_memory(x_train, y_train):
             next_y_train.append(y_train.pop(0))
         memory_x_batches.append(np.array(next_x_train))
         memory_y_batches.append(np.array(next_y_train))
-        print("done loading into memory")
+        # print("done loading into memory")
 
 
 def train_in_batches(x_train, y_train, model):
@@ -46,8 +46,6 @@ def train_in_batches(x_train, y_train, model):
     :param x_train:
     :param y_train:
     :param model:
-    :param x_test:
-    :param y_test:
     :return:
     """
     checkpoint_path = "model_weights/cp.ckpt"
@@ -99,10 +97,10 @@ def train_in_batches(x_train, y_train, model):
                                                epochs=epochs, batch_size=config.gpu_batch)
 
             # python garbage collection was not working fast enough.
-            # del current_x_train
-            # del current_y_train
-            # # Todo: look into tracemalloc. gc.collect works but it's not perfect.
-            # gc.collect()
+            del current_x_train
+            del current_y_train
+            # Todo: look into tracemalloc. gc.collect works but it's not perfect.
+            gc.collect()
 
             if loop_count >= 32:
                 print('saving off model')
@@ -120,6 +118,11 @@ def train_in_batches(x_train, y_train, model):
             batches_processed += 1
             print(f"batch time: {time.time() - batch_start_time}")
             print(f'{round(len(x_train) / config.memory_batch)} batches to go!')
+
+            # Get peak VRAM usage
+            memory_stats = tf.config.experimental.get_memory_info("GPU:0")
+            peak_usage = round(memory_stats["peak"] / (2 ** 30), 3)
+            print(peak_usage)
 
 
         print('saving model')
