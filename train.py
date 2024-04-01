@@ -21,7 +21,7 @@ def load_images_into_memory(x_train, y_train):
     full_x_train = x_train.copy()
     full_y_train = y_train.copy()
     while True:
-        if len(memory_x_batches) > 2:
+        if len(memory_x_batches) > 1:
             # print("batch filled")
             time.sleep(1)
             continue
