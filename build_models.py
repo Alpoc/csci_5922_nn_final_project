@@ -125,9 +125,9 @@ def build_test_cnn_with_pooling(input_shape):
     return new_model
 
 
-def build_test_cnn_model(input_shape):
+def build_cnn_model_32x5_nn(input_shape):
     """
-    Model used for Visualizing max pooling
+    CNN model with 32x5 NN following the conv
     """
     new_model = Sequential([
         Conv2D(filters=8, kernel_size=(4, 4), activation='relu', input_shape=input_shape),
@@ -140,6 +140,65 @@ def build_test_cnn_model(input_shape):
         Dense(32, activation='relu'),
         Dense(32, activation='relu'),
         Dense(32, activation='relu'),
+        # 4 labels.
+        Dense(4, activation='sigmoid')
+    ])
+    new_model.compile(optimizer='adam',
+                      loss='binary_crossentropy',
+                      metrics=['accuracy'])
+    return new_model
+
+
+def build_cnn_model_64x10_nn(input_shape):
+    """
+    CNN model with 64x5 NN following the conv
+    Too large for my 3090
+    """
+    new_model = Sequential([
+        Conv2D(filters=8, kernel_size=(4, 4), activation='relu', input_shape=input_shape),
+        MaxPooling2D(pool_size=(2, 2)),
+        Conv2D(filters=8, kernel_size=(8, 8), activation='relu', input_shape=input_shape),
+        MaxPooling2D(pool_size=(2, 2)),
+        Flatten(),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        # 4 labels.
+        Dense(4, activation='sigmoid')
+    ])
+    new_model.compile(optimizer='adam',
+                      loss='binary_crossentropy',
+                      metrics=['accuracy'])
+    return new_model
+
+
+def build_cnn_model_48x10_nn(input_shape):
+    """
+    CNN model with 64x5 NN following the conv
+    """
+    new_model = Sequential([
+        Conv2D(filters=8, kernel_size=(4, 4), activation='relu', input_shape=input_shape),
+        MaxPooling2D(pool_size=(2, 2)),
+        Conv2D(filters=8, kernel_size=(8, 8), activation='relu', input_shape=input_shape),
+        MaxPooling2D(pool_size=(2, 2)),
+        Flatten(),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
+        Dense(48, activation='relu'),
         # 4 labels.
         Dense(4, activation='sigmoid')
     ])
