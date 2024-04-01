@@ -99,7 +99,7 @@ def train_in_batches(x_train, y_train, model):
                 loop_count = 0
                 memory_stats = tf.config.experimental.get_memory_info("GPU:0")
                 peak_usage = round(memory_stats["peak"] / (2 ** 30), 3)
-                print(peak_usage)
+                print(f"peak memory usage: {peak_usage} GB.")
             loop_count += 1
 
             batches_processed += 1
@@ -112,6 +112,7 @@ def train_in_batches(x_train, y_train, model):
         with open(epochs_file, "w") as f:
             f.write(str(epochs_ran))
 
+        print(f"epochs_ran: {epochs_ran}")
         current_time = time.time()
         epoch_run_time = (current_time - epoch_time) / 60
         print(f'epoch time: {epoch_run_time} minutes')
@@ -165,7 +166,7 @@ def save_model(model):
 
 if __name__ == "__main__":
     # Getting a memory malloc error, trying to solve.
-    # os.environ["tf_gpu_allocator"] = "cuda_malloc_async"
+    os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
 
     gpu_check()
     # It not train_new_model the "current_model" will be loaded and training will continue.
@@ -183,6 +184,7 @@ if __name__ == "__main__":
     x, y = get_files(recording_directory)
 
     if train_new_model:
+        print("training model from scratch")
         move_previous_model_folder()
         input_shape = img_to_array(load_img(x[0], color_mode=config.color_mode)).shape
         if lstm_and_cnn_model:
@@ -196,6 +198,7 @@ if __name__ == "__main__":
             keras_model = build_models.build_cnn_model_48x10_nn(input_shape)
 
     else:
+        print("Continuing to train previous model")
         model_location = os.path.join(config.linux_model_location, "current_model", "keras_model_dir")
         keras_model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
     keras_model.summary()
