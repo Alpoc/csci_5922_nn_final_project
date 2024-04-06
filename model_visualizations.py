@@ -232,9 +232,9 @@ if __name__ == "__main__":
 
     recording_directory = config.linux_testing_directory
 
-    memory_stats = tf.config.experimental.get_memory_info("GPU:0")
-    peak_usage = round(memory_stats["peak"] / (2 ** 30), 3)
-    print(peak_usage)
+    # memory_stats = tf.config.experimental.get_memory_info("GPU:0")
+    # peak_usage = round(memory_stats["peak"] / (2 ** 30), 3)
+    # print(peak_usage)
 
     if test_model:
         x, y = get_files(recording_directory)

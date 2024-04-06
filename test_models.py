@@ -123,6 +123,23 @@ def build_merged_cnn_3_filters(input_shape):
     return new_model
 
 
+def build_speed_reader(input_shape):
+    """
+    Model used for Visualizing max pooling
+    """
+    #
+    num_classes = 100
 
-def build_merge_two_models():
-
+    new_model = Sequential([
+        Conv2D(filters=8, kernel_size=(4, 4), activation='relu', input_shape=input_shape),
+        MaxPooling2D(pool_size=(2, 2)),
+        Dropout(0.15),
+        Flatten(),
+        Dense(32, activation='relu'),
+        # 4 labels.
+        Dense(num_classes, activation='sigmoid')
+    ])
+    new_model.compile(optimizer='adam',
+                      loss='binary_crossentropy',
+                      metrics=['accuracy'])
+    return new_model
