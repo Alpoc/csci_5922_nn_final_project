@@ -19,7 +19,7 @@ def load_images_into_memory(x_train, y_train):
     full_x_train = x_train.copy()
     full_y_train = y_train.copy()
     while True:
-        if len(memory_x_batches) > 1:
+        if len(memory_x_batches) > 0:
             # print("batch filled")
             time.sleep(1)
             continue
@@ -80,6 +80,8 @@ def train_in_batches(x_train, y_train, model):
             batch_start_time = time.time()
 
             while len(memory_x_batches) == 0:
+                # Because of how threading works in python we must sleep. Everything is running on one thread...
+                time.sleep(0.5)
                 pass
             # Datatypes must be np arrays. same as tf.stack().
             current_x_train = memory_x_batches.pop()
