@@ -38,6 +38,8 @@ def get_files(recording_base_dir):
         recording_dir = os.path.join(recording_base_dir, session_dir)
 
         video_frame_dir = os.path.join(recording_dir, "video_images")
+        if not os.path.isdir(video_frame_dir):
+            continue
         frame_list = os.listdir(video_frame_dir)
 
         frame_dir_list.extend([os.path.join(video_frame_dir, frame) for frame in frame_list])

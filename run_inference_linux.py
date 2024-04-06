@@ -54,19 +54,9 @@ def inference_on_game(model):
                 frame = frame.reshape(-1, frame.shape[0], frame.shape[1])
             else:
                 frame = frame.reshape(-1, frame.shape[0], frame.shape[1], frame.shape[2])
-            start_time = time.time()
-            # This doesn't work. We're not path planning like RRT Star. Instead, we can increase framerate
-            if average_results:
-                prediction_1 = []
-                for _ in range(3):
-
-                    predicted_keys = model.predict(frame, verbose=0) / 2
-                    if len(prediction_1) == 0:
-                        prediction_1 = predicted_keys.copy()
-                predicted_keys = list(map(sum,zip(prediction_1, predicted_keys)))
-            else:
-                predicted_keys = model.predict(frame, verbose=0)
-            print(f'inferent time {time.time() - start_time}')
+            # start_time = time.time()
+            predicted_keys = model.predict(frame, verbose=0)
+            # print(f'inference time {time.time() - start_time}')
             predicted_keys = predicted_keys[0].tolist()
             if predicted_keys[0] > 0.5:
                 keyboard.press('w')
