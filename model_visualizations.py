@@ -14,6 +14,7 @@ import gc
 import time
 
 import build_models
+import test_models
 from utils import load_keras_model, get_files
 
 import config
@@ -64,6 +65,9 @@ def visualize_feature_map(model, x_test):
         features = feature_model.predict(single_x, verbose=False)
         # print(f"Layer took {time.time() - start_time} seconds to predict")
 
+        print(features.shape)
+        print(f"num pixels: {features.shape[1] * features.shape[2]}")
+
         plt.figure(figsize=(16, 9))
         if not single_visual:
             fig, ax = plt.subplots(figsize=(160, 90))
@@ -96,6 +100,11 @@ def visualize_model(feature_model, x_test):
     single_x = single_x.reshape(-1, single_x.shape[0], single_x.shape[1], single_x.shape[2])
     features = feature_model.predict(single_x, verbose=False)
 
+    num_pixels = features.shape[1] * features.shape[2]
+    print(f"num pixels: {num_pixels:,}")
+
+    print(features.shape)
+
     plt.figure(figsize=(16, 9))
     if not single_visual:
         fig, ax = plt.subplots(figsize=(160, 90))
@@ -106,7 +115,7 @@ def visualize_model(feature_model, x_test):
         ax.spines['left'].set_visible(False)
     for i in range(1, features.shape[3] + 1):
         if not single_visual:
-            plt.subplot(4, 3, i)
+            plt.subplot(2, 1, i)
             plt.xticks([])
             plt.yticks([])
         plt.imshow(features[0, :, :, i - 1], cmap="gray")
@@ -232,11 +241,11 @@ if __name__ == "__main__":
         input_shape = img_to_array(load_img(x[0], color_mode=config.color_mode)).shape
         # keras_model = build_models.build_test_cnn(input_shape)
         # keras_model = build_models.build_test_cnn_with_pooling(input_shape)
-        keras_model = build_models.build_test_cnn_model(input_shape)
+        # keras_model = build_models.build_test_merged_cnn(input_shape)
+        # keras_model = build_models.build_merged_cnn(input_shape)
+        keras_model = test_models.build_merged_cnn_with_speed(input_shape)
     else:
         keras_model, x, y = load_keras_model()
-
-
 
     # keras_model.summary()
     # exit()
@@ -245,7 +254,7 @@ if __name__ == "__main__":
     # visualize_prediction(model, x, y)
 
     # visualize_kernels(model=keras_model)
-    visualize_feature_map(keras_model, x)
+    # visualize_feature_map(keras_model, x)
     # visualize_model(keras_model, x)
 
     print(keras_model.summary())

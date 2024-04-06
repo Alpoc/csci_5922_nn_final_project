@@ -34,15 +34,15 @@ def inference_on_game(model):
         # if keyboard.is_pressed('esc'):
         #     print('program killed by user')
         #     exit()
-        # if True:
-        #     # show screen for test
-        #     if ON_WINDOWS:
-        #         frame = camera.get_latest_frame()
-        #     else:
-        #         frame = stream.read()
-        #     gray_image = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        #     cv2.imshow("image", gray_image)
-        #     cv2.waitKey(0)
+        if False:
+            # show screen for test
+            if ON_WINDOWS:
+                frame = camera.get_latest_frame()
+            else:
+                frame = stream.read()
+            gray_image = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            cv2.imshow("image", gray_image)
+            cv2.waitKey(0)
 
         if True:
             if ON_WINDOWS:

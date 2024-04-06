@@ -2,8 +2,9 @@ from os import path
 
 model_name = "my_model.keras"
 model_windows_name = "keras_model_dir"
-model_dir_name = "current_model_cnn_lstm_25_epochs"
+# model_dir_name = "current_model_cnn_lstm_25_epochs"
 # model_dir_name = "current_model_cnn_100_epochs"
+model_dir_name = "current_model"
 
 
 windows_base_path = path.join("O:", "neural_networks")
@@ -12,7 +13,9 @@ windows_testing_directory = path.join(windows_base_path, "recordings", "testing"
 windows_model_location = path.join(windows_base_path, "models")
 
 linux_base_path = path.join("/media", "dj", "Games Drive", "neural_networks", )
-linux_training_directory = path.join(linux_base_path, "recordings", "training", "hirochi_donut_regular")
+# linux_training_directory = path.join(linux_base_path, "recordings", "training", "hirochi_donut_regular")
+# linux_training_directory = path.join(linux_base_path, "recordings", "training", "hirochi_donut_turn_right")
+linux_training_directory = path.join(linux_base_path, "recordings", "training", "hirochi_donut_slow_down")
 linux_testing_directory = path.join(linux_base_path, "recordings", "testing")
 linux_model_location = path.join(linux_base_path, "models")
 
