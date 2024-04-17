@@ -32,3 +32,21 @@ what the camera is seeing. An equivalent in linux is still needed.
 - "f9" to start recording. "f9" or "esc" to end
 
 - kill -9 $(pgrep -f "run_inference")
+
+### Training
+- config contains the some settings that need to be set such as training data location
+- `conda activate tf`
+- `python3 train.py`
+
+### Gathering Training data
+- See BeamNG.drive setup
+- If on windows press
+  - 'f9' to start recording
+  - 'f9' or 'esc' to end recording
+  
+- `python3 game_session_recorder.py`
+
+### Running the model on the game
+- `f9` to start the program. You'll need to kill it manually
+- `f8` to preview frame (Does not work on Linux) you have to manually change to true in code. 
+- `python3 run_inference.py` or `python3 run_inference_linux.py`
